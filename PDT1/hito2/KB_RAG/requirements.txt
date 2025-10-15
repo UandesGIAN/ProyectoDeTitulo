@@ -1,6 +1,7 @@
 # Core
 langchain==0.3.27
 llama-index==0.14.5
+langchain-community
 
 # Document loaders
 PyPDF2==3.0.1

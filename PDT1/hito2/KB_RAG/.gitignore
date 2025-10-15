@@ -3,3 +3,6 @@ venv/
 
 # Ignorar la carpeta docs
 docs/
+
+# Ignorar los JSON generados
+extracted_texts_jsons/
