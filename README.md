@@ -1,4 +1,4 @@
-# Generación de reportes individuales para plataforma de medición de ciberhigiene HFSHield
+# Generación de reportes individuales para plataforma de medición de ciberhigiene HFShield
 
 - Gianfranco Bobadilla Riquelme
 - Claudio Álvarez
