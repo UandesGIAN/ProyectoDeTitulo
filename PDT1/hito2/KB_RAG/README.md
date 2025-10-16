@@ -18,11 +18,14 @@
 - Usar Gemini AI para probar prompts que recuperen chunks relevantes y generen la respuesta usando esos fragmentos como contexto.
 
 ## Para ejecutar
+1. 
 ```bash
 ./setup_env.sh
 ```
 
 - *ingest.py* no hace falta ejecutarlo, pues ya están los documentos en la carpeta `/extracted_texts_jsons`.
+
+2. Crear `.env` y poner dentro `GOOGLE_API_KEY=api_key`
 
 
 ## Para borrar

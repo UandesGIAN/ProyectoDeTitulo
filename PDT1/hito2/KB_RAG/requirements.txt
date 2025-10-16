@@ -1,7 +1,9 @@
 # Core
 langchain==0.3.27
 llama-index==0.14.5
-langchain-community
+langchain_community
+google-genai
+google-generativeai
 
 # Document loaders
 PyPDF2==3.0.1
@@ -16,3 +18,4 @@ python-pptx==1.0.2
 tqdm==4.66.1
 requests==2.31.0
 PyYAML==6.0.3
+python-dotenv

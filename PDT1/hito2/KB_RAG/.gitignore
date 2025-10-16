@@ -1,8 +1,12 @@
 # Ignorar entorno virtual
 venv/
 
+# Ignorar env
+.env
+
 # Ignorar la carpeta docs
 docs/
 
 # Ignorar los JSON generados
 extracted_texts_jsons/
+
