@@ -2,20 +2,23 @@
 
 ## El pipeline
 
-1. Ingesta de documentos
+1. **Ingesta de documentos**
 - LangChain para leer documentos: [ingest.py](ingest.py)
 - Se guardan en JSON, uno por documento. En `/extracted_texts_jsons`.
+- Se extrae metadata como fecha, autor, fuente y se divide el texto en chunks.
 
-2. Enriquecimiento semántico
-- Primero split en chunks para cada documento.
-- Luego se usa Gemini AI para leer cada documento y extraer roles, riesgos, controles, fuentes...
-- Generar JSON para cada fragmento con las recomendaciones.
+2. **Enriquecimiento semántico**
+- Usa Gemini AI para enriquecer los chunks de los JSON en `/extracted_texts_jsons` y extraer roles, riesgos, controles, etc. [semantic_enrichment.py](semantic_enrichment.py)
+- Generar JSON para cada fragmento con las recomendaciones, se guardan en `/processed_jsons`.
 
-3. Indexado vectorial
-- FAISS (local, rápido) o Qdrant (más avanzado, tolera metadatos y filtros).
+3. **Indexado vectorial**
+- LangChain Chroma para Vector Store, usa Gemini Embeddings para crear los vectores de las recomendaciones. [vector_store.py](vector_store.py)
+- Se almacenan en `/vectorstore_chroma`.
+- Tambien define el retriever para buscar los vectores más cercanos a partir de una consulta.
 
 4. Consulta con RAG
 - Usar Gemini AI para probar prompts que recuperen chunks relevantes y generen la respuesta usando esos fragmentos como contexto.
+
 
 ## Para ejecutar
 1. 
@@ -23,9 +26,14 @@
 ./setup_env.sh
 ```
 
-- *ingest.py* no hace falta ejecutarlo, pues ya están los documentos en la carpeta `/extracted_texts_jsons`.
+2.
+Crear `.env` y poner dentro `GOOGLE_API_KEY=api_key`
 
-2. Crear `.env` y poner dentro `GOOGLE_API_KEY=api_key`
+3. 
+```bash
+(to do)
+./pipeline.sh
+```
 
 
 ## Para borrar

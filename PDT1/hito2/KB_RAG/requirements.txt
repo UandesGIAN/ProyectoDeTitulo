@@ -4,6 +4,8 @@ llama-index==0.14.5
 langchain_community
 google-genai
 google-generativeai
+chromadb
+langchain-chroma
 
 # Document loaders
 PyPDF2==3.0.1

@@ -9,4 +9,6 @@ docs/
 
 # Ignorar los JSON generados
 extracted_texts_jsons/
+processed_jsons/
+vectorstore_chroma
 
