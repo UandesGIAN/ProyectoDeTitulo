@@ -8,16 +8,17 @@
 - Se extrae metadata como fecha, autor, fuente y se divide el texto en chunks.
 
 2. **Enriquecimiento semántico**
-- Usa Gemini AI para enriquecer los chunks de los JSON en `/extracted_texts_jsons` y extraer roles, riesgos, controles, etc. [semantic_enrichment.py](semantic_enrichment.py)
-- Generar JSON para cada fragmento con las recomendaciones, se guardan en `/processed_jsons`.
+- Usa Gemini AI para enriquecer los chunks de los JSON en `/extracted_texts_jsons` y extraer roles, riesgos, dimensiones, recomendación, etc. [semantic_enrichment.py](semantic_enrichment.py)
+- Genera JSON para cada fragmento con las recomendaciones, se guardan en `/processed_jsons`.
 
 3. **Indexado vectorial**
 - LangChain Chroma para Vector Store, usa Gemini Embeddings para crear los vectores de las recomendaciones. [vector_store.py](vector_store.py)
 - Se almacenan en `/vectorstore_chroma`.
-- Tambien define el retriever para buscar los vectores más cercanos a partir de una consulta.
+- Cada embedding posee la metadata necesaria para poder obternerse al consultar con querys.
 
-4. Consulta con RAG
+4. **Consulta con RAG**
 - Usar Gemini AI para probar prompts que recuperen chunks relevantes y generen la respuesta usando esos fragmentos como contexto.
+- Para ello se dispone del archivo [tester.py](tester.py).
 
 
 ## Para ejecutar
@@ -30,10 +31,12 @@
 Crear `.env` y poner dentro `GOOGLE_API_KEY=api_key`
 
 3. 
+Si se desea ejecutar todo el proceso desde la ingesta hasta el tester para regenerar el vector_store, se puede usar el siguiente script:
 ```bash
-(to do)
 ./pipeline.sh
 ```
+
+Pero de normal se espera que se utilice la KB disponible en vectorstore_chroma con el [tester.py](tester.py).
 
 
 ## Para borrar
