@@ -58,7 +58,6 @@ def clean_metadata(meta: dict):
 
 # CARGAR CHUNKS ENRIQUECIDOS
 docs = []
-metadatas = []
 
 json_files = [f for f in os.listdir(PROCESSED_DIR) if f.endswith(".json")]
 for file in json_files:
@@ -69,38 +68,48 @@ for file in json_files:
     for chunk in data.get("chunks_enriquecidos", []):
         if not isinstance(chunk, dict):
             continue
-        text = (chunk.get("accion_recomendada") or chunk.get("tema") or "").strip()
+
+        # Crear el texto para embedding combinando contexto y recomendación
+        text = " ".join(filter(None, [
+            chunk.get("recomendacion", ""),
+        ])).strip()
         if not text:
             continue  # ignorar chunks vacíos
+
+        # Metadata completa para acceso fácil
         metadata = clean_metadata({
-            "fuente": data.get("fuente", ""),
-            "rol_afectado": chunk.get("rol_afectado", ""),
+            "fuente": data.get("metadata_original", {}).get("fuente", ""),
+            "dimension": chunk.get("dimension_IMECH", ""),
+            "nivel": chunk.get("nivel", ""),
+            "recomendacion": chunk.get("recomendacion", ""),
             "riesgo": chunk.get("riesgo", ""),
-            "participante": chunk.get("triplete", ["", "", ""])[0],
-            "amenaza": chunk.get("triplete", ["", "", ""])[1],
-            "mitigacion": chunk.get("triplete", ["", "", ""])[2],
+            "tipo_vulnerabilidad": chunk.get("tipo_vulnerabilidad", ""),
+            "tags": chunk.get("tags", []),
+            "original_text": chunk.get("original_text", ""),
+            "tema": chunk.get("tema", []),
             "tipo_documento": data.get("metadata_original", {}).get("tipo", ""),
             "fecha": data.get("metadata_original", {}).get("fecha", "")
         })
+
         docs.append(Document(page_content=text, metadata=metadata))
 
 print(f"[SETUP] Total chunks válidos: {len(docs)}\n")
 
 
 # GENERAR EMBEDDINGS POR LOTES
-docs = docs[:100]
-print(f"[DEBUG] Solo se procesarán {len(docs)} chunks para testeo\n")
+#docs = docs[:100]
+#print(f"[DEBUG] Solo se procesarán {len(docs)} chunks para testeo\n")
 
 texts = [d.page_content for d in docs]
 metadatas_list = [d.metadata for d in docs]
 
 embeddings = []
 batch_size = 50  # procesar en batches para no saturar
-for i in range(0, len(texts), batch_size):
-    batch_texts = texts[i:i+batch_size]
-    batch_emb = [get_gemini_embedding(t) for t in batch_texts]
+for i in range(0, len(docs), batch_size):
+    batch_docs = docs[i:i+batch_size]
+    batch_emb = [get_gemini_embedding(d.page_content) for d in batch_docs]
     embeddings.extend(batch_emb)
-    print(f"[EMBEDDINGS] Procesados {i+len(batch_texts)}/{len(texts)} chunks")
+    print(f"[EMBEDDINGS] Procesados {i+len(batch_docs)}/{len(docs)} chunks")
 
 
 # VECTOR STORE (Chroma)
@@ -112,7 +121,7 @@ class GeminiEmbeddings:
         return get_gemini_embedding(text)
 
 vector_store = Chroma(
-    embedding_function=GeminiEmbeddings(),  # no se usarán embeddings automáticos
+    embedding_function=GeminiEmbeddings(),
     collection_name="kb_rag",
     persist_directory=VECTOR_DB_DIR
 )

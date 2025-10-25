@@ -57,38 +57,3 @@ hfshield-rag/
 │   └── ingest.py
 │
 └── qdrant_data/
-
-
-from typing import List
-from langchain.schema import Document
-
-def ingest_all_documents() -> List[Document]:
-    loaders = {
-        "pdf": DirectoryLoader("docs/normativas", glob="**/*.pdf", loader_cls=PyPDFLoader),
-        "word": DirectoryLoader("docs/politicas", glob="**/*.docx", loader_cls=UnstructuredWordDocumentLoader),
-        "html": DirectoryLoader("docs/html", glob="**/*.html", loader_cls=UnstructuredHTMLLoader),
-        "md": DirectoryLoader("docs/md", glob="**/*.md", loader_cls=TextLoader)
-    }
-
-    docs = []
-    for name, loader in loaders.items():
-        print(f"Cargando {name}...")
-        docs.extend(loader.load())
-
-    # Enriquecer metadatos
-    for d in docs:
-        d.metadata["categoria"] = name
-
-    # Split
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    return splitter.split_documents(docs)
-
-
-{
-  "categoria": "conductual",
-  "roles": ["empleado", "supervisor"],
-  "riesgos": ["uso indebido de contraseñas", "negligencia"],
-  "controles": ["capacitación continua", "política de contraseñas seguras"],
-  "fuente": "enisa_2024_guidelines.pdf"
-}
-
