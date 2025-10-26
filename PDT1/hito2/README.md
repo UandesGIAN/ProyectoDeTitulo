@@ -3,22 +3,20 @@
 ## El pipeline
 
 1. **Procesar muestra encuesta**
-- LangChain para leer documentos: [ingest.py](ingest.py)
-- Se guardan en JSON, uno por documento. En `/extracted_texts_jsons`.
-- Se extrae metadata como fecha, autor, fuente y se divide el texto en chunks.
+- [procesar_encuesta.py](procesar_encuesta.py)  lee los datos puros del imech y la muestra de la encuesta para crear un JSON que combina ambos datos.
 
 2. **Analizar datos encuesta**
-- Usa Gemini AI para enriquecer los chunks de los JSON en `/extracted_texts_jsons` y extraer roles, riesgos, dimensiones, recomendación, etc. [semantic_enrichment.py](semantic_enrichment.py)
-- Genera JSON para cada fragmento con las recomendaciones, se guardan en `/processed_jsons`.
+- [procesar_datos_encuesta.py](procesar_datos_encuesta.py) Lee los datos de la encuesta puros y evalúa las dimensiones más débiles del usuario.
+- Asigna un puntaje a cada respuesta del usuario y la compara con una respuesta promedio. Si  está por debajo del 65% considera que está en riesgo.
+- Genera JSON de salida con un análisis por encuestado.
 
 3. **Obtener recomendaciones**
-- LangChain Chroma para Vector Store, usa Gemini Embeddings para crear los vectores de las recomendaciones. [vector_store.py](vector_store.py)
-- Se almacenan en `/vectorstore_chroma`.
-- Cada embedding posee la metadata necesaria para poder obternerse al consultar con querys.
+- Se accede a los datos de las encuestas procesados y se hacen consultas a los embeddings del vector store (KB) para recuperar las recomendaciones.
+- Guarda las recomendaciones en la carpeta `/recomendaciones`
 
 4. **Generar reportes**
-- Usar Gemini AI para probar prompts que recuperen chunks relevantes y generen la respuesta usando esos fragmentos como contexto.
-- Para ello se dispone del archivo [tester.py](tester.py).
+- Usar Gemini AI para generar markdown con 10 recomendaciones de todas las que se fueron recomendadas para el encuestado.
+- Se puede editar el prompt, es provisional [generar_reportes.py](generar_reportes.py)
 
 
 ## Para ejecutar
@@ -31,12 +29,10 @@
 Crear `.env` y poner dentro `GOOGLE_API_KEY=api_key`
 
 3. 
-Si se desea ejecutar todo el proceso desde la ingesta hasta el tester para regenerar el vector_store, se puede usar el siguiente script:
+Si se desea ejecutar todo el proceso desde procesar la encuesta hasta la generación de reportes, se puede usar el siguiente script:
 ```bash
 ./pipeline.sh
 ```
-
-Pero de normal se espera que se utilice la KB disponible en vectorstore_chroma con el [tester.py](tester.py).
 
 
 ## Para borrar

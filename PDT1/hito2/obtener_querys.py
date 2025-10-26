@@ -149,11 +149,12 @@ def get_unique_recommendations(docs, existing=set(), max_rec=5):
                 "nivel": d.metadata.get("nivel", ""),
                 "dimension": d.metadata.get("dimension", ""),
                 "tags": d.metadata.get("tags", []),
-                "esfuerzo": d.metadata.get("riesgo", ""),
-                "impacto": d.metadata.get("nivel", ""),
+                "esfuerzo": d.metadata.get("esfuerzo", d.metadata.get("riesgo", "")),
+                "impacto": d.metadata.get("impacto", d.metadata.get("nivel", "")),
                 "texto_original": d.metadata.get("original_text", ""),
                 "fecha": d.metadata.get("fecha", "")
             }
+            recs.append(rec)
             existing.add(r_text)
         if len(recs) >= max_rec:
             break
@@ -197,7 +198,7 @@ for participante in participantes:
         recs_dim = []
         for nivel in niveles:
             docs = semantic_query(
-                query_text="Recomendaciones para "+dimensiones[dim],
+                query_text=dimensiones[dim],
                 top_k=10,
                 filters={"dimension": dim, "nivel": nivel}
             )

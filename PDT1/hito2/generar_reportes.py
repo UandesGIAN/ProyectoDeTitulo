@@ -43,13 +43,12 @@ def generate_report_md(participant_data):
     Genera el contenido MD del reporte usando Gemini AI
     """
     prompt = f"""
-    Eres un asistente experto en ciberseguridad que redacta informes en formato Markdown estilo receta médica, breve, en lenguaje chileno, amigable, no culpabilizador. 
-    Usa el siguiente contexto JSON sobre el participante:
+    A partir de esta información de un participante en una encuesta de ciberhigiene, redacta en 500 palabras o menos un pequeño pero preciso reporte, en lenguaje natural, profesional, serio y entendible para
+    usuarios apropiado a su nivel de expertís, una guía precisa y clara de como mejorar su ciberseguridad mediante única y exclusivamente las recomendaciones que se adjuntan. Debes elegir las 10 más valoradas y distintas entre sí, luego al final
+    incluir una sección con las fuentes, donde debes incluir el nombre de los pdf y su fecha o la url de la página web exactamente igual. Escribelo en formato markdown.
+    No debes incluir introducciones largas, solo indica que es un listado de recomendaciones para el participante y ES MUY IMPORTANTE QUE TOMES LA FUENTE DEL JKSON QUE TE ENTREGÓ A CONTINUACIÓN:
 
     {json.dumps(participant_data, indent=2, ensure_ascii=False)}
-
-    Redacta un informe de recomendación completo en formato markdown, debe indicar las dimensiones más debiles del usuario, con su descripción completa e indicar máximo 10 recomendaciones en un punteo
-    que sean claramente distintas, para que el usuario que lea el reporte sepa qué hacer para mejorar su ciberhigiene. No debe exceder las 600 palabras. Y debe incluir al final un apartado de fuentes, con citas textuales del texto original de cada recomendación dada.
     """
 
     try:
@@ -77,17 +76,28 @@ def save_md_and_pdf(md_content, base_name):
     print(f"[INFO] Reporte PDF generado: {pdf_file}")
 
 
-
 with open(INPUT_JSON, "r", encoding="utf-8") as f:
     data = json.load(f)
 
-# Tomar el primer participante
-participant = data[0] if isinstance(data, list) else data
 
-base_name = participant.get("Participante", "reporte_participante").replace(" ", "_")
+'''
+# PARA GENERAR UNO SOLO
+participant = data[0] if isinstance(data, list) else data
+base_name = str(participant.get("Participante", "reporte_participante")).replace(" ", "_")
 
 # Generar reporte
 md_report = generate_report_md(participant)
-
 # Guardar MD y PDF
 save_md_and_pdf(md_report, base_name)
+'''
+
+
+# PARA GENERAR TODOS
+for idx, participant in enumerate(data):
+    participante_name = str(participant.get("Participante", f"reporte_participante_{idx}")).replace(" ", "_")
+    
+    # Generar reporte
+    md_report = generate_report_md(participant)
+    
+    # Guardar MD y PDF
+    save_md_and_pdf(md_report, participante_name)
