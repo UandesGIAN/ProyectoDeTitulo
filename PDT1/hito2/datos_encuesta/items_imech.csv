@@ -1,0 +1,43 @@
+Índice,Items,Dimensión,Comportamiento de Riesgo,Enunciado,Aspecto de la variable latente medido
+1,i01,DAI,Sí,Permito que otras personas usen mi teléfono.,Uso del dispositivo personal por terceras personas
+6,i02,DAI,Sí,Mi teléfono móvil tiene cuatro o más años y no tengo interés en cambiarlo por uno más nuevo.,Riesgo de seguridad relativo a la antiguedad del dispositivo (hardware o software)
+11,i03,DAI,Sí,En mis ratos libres pruebo juegos y aplicaciones nuevas en el teléfono.,Riesgo de seguridad relativo a la instalación de aplicaciones en el dispositivo
+17,i04,DAI,Sí,Dejo mi teléfono en el mesón o en el escritorio cuando estoy trabajando.,Uso del dispositivo en distintos contextos laborales y personales
+22,i05,DAI,No,Me preocupo de mantener las aplicaciones del teléfono actualizadas a la última versión.,Riesgo de seguridad relativo a la antiguedad del dispositivo (hardware o software)
+28,i06,DAI,No,Desbloqueo el teléfono usando mi huella dactilar o un patrón difícil.,Acceso seguro al dispositivo
+33,i07,DAI,No,Si mi teléfono está descargado uso mi propio cargador para seguirlo usando.,Seguridad física del dispositivo
+38,i08,DAI,No,Bloqueo el teléfono o el computador cuando los dejo de usar.,Seguridad física del dispositivo
+42,i09,DAI,No,Tengo interés en respaldar mi información en forma segura.,Respaldo de la información
+44,i10,DAI,Sí,Respaldo mis datos e información del trabajo en alguna plataforma en línea cuya cuenta he creado yo mismo(a).,
+2,i11,TRI,Sí,Comparto contraseñas por whatsapp o por correo electrónico.,Transmisión de información confidencial a terceros
+7,i12,TRI,No,Si recibo un mensaje confidencial por WhatsApp o correo lo borro después de leerlo.,Recepción de información confidencial desde otros
+12,i13,TRI,Sí,Cuando estoy trabajando comparto con otras personas fuera de mi trabajo fotos o mensajes por WhatsApp o correo electrónico.,Acceso y uso de medios de transmisión de información
+18,i14,TRI,No,"No me conecto a redes WiFi públicas, por ejemplo, en la vía pública, o en el metro.",Acceso y uso de medios de transmisión de información
+23,i15,TRI,Sí,"Me siento tranquilo usando el WiFi de lugares públicos, como plazas o el metro, para temas de trabajo.",Acceso y uso de medios de transmisión de información
+29,i16,TRI,Sí,Tengo un pendrive y lo uso con computadores dentro y fuera del trabajo.,Acceso y uso de medios de transmisión de información
+34,i17,TRI,Sí,Guardo información en uno o más pendrives o memorias USB.,
+39,i18,TRI,No,"Si mando información privada por mensaje, me aseguro de eliminarla luego.",Transmisión de información confidencial a terceros
+3,i19,CRS,Sí,Comparto información personal y de mi familia en las redes sociales.,Cuidado de la información personal en las RRSS.
+8,i20,CRS,No,Desconfío de lo que leo en las redes sociales.,Aceptación y propagación de noticias falsas.
+13,i21,CRS,Sí,Comparto lo que hago en mi trabajo en las redes sociales.,Compartir información laboral en las RRSS.
+19,i22,CRS,Sí,Agrego personas desconocidas a mis redes sociales.,Uso de RRSS en el contexto laboral para comunicación con personas externas.
+24,i23,CRS,No,Oculto mi información personal en las redes sociales.,Cuidado de la información personal en las RRSS.
+30,i24,CRS,No,Creo que las redes sociales están llenas de información dudosa o falsa.,Aceptación y propagación de noticias falsas.
+35,i25,CRS,Sí,Todo el tiempo estoy compartiendo publicaciones en las redes sociales.,Aceptación y propagación de noticias falsas.
+4,i26,AUC,Sí,Mis contraseñas son simples y fáciles de recordar.,Fortaleza de la contraseña
+9,i27,AUC,No,Me preocupo por usar contraseñas que a mi juicio son difíciles de adivinar.,Fortaleza de la contraseña
+14,i28,AUC,No,Uso contraseñas distintas para cada servicio que accedo en internet.,Hábitos seguros de uso de contraseñas
+20,i29,AUC,No,"Mis contraseñas son muy difíciles, muy largas, y nadie podría adivinarlas.",Fortaleza de la contraseña
+25,i30,AUC,No,Me preocupo de cambiar mis contraseñas por lo menos dos veces al año.,Hábitos seguros de uso de contraseñas
+31,i31,AUC,Sí,Siempre uso la misma contraseña en todos los sitios y servicios de internet que uso.,Hábitos seguros de uso de contraseñas
+36,i32,AUC,Sí,"Uso contraseñas fáciles con servicios y aplicaciones de internet, pues a nadie le interesa mi información personal y menos pensará en robármela.",Fortaleza de la contraseña
+40,i33,AUC,Sí,Anoto las claves que uso en papeles o post-it.,
+43,i34,AUC,Sí,"Guardo mis claves en programas como bloc de notas, Microsoft Word, Microsoft Excel o similares.",
+5,i35,MCE,Sí,"Cuando me llega un correo o mensaje con una oferta tentadora, pincho en los botones o enlaces.",Comportamiento impulsivo
+10,i36,MCE,Sí,"Si alguien conocido me escribe un correo electrónico o mensaje para pedirme ayuda económica, mi tendencia es a ayudarlo.",Confianza excesiva en remitentes
+15,i37,MCE,No,"Si el banco me manda un correo o mensaje, no estoy seguro(a) de que sea real.",Presión emocional
+21,i38,MCE,No,No leo mensajes que vienen de desconocidos.,Falta de verificación de la información
+26,i39,MCE,Sí,"Creo que leer todo lo que viene en un correo, incluidos los adjuntos y los enlaces, es muy importante.",Comportamiento impulsivo
+32,i40,MCE,Sí,Confío en el contenido de un correo o mensaje si viene de alguien de mi trabajo.,Confianza excesiva en remitentes
+37,i41,MCE,Sí,"Uso una cuenta de correo electrónico cuya clave comparto con otras personas, para asuntos del trabajo.",
+41,i42,MCE,Sí,"Para el trabajo uso una cuenta de correo electrónico personal, creada por mí mismo(a).",
