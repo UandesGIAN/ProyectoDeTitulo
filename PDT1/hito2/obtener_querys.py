@@ -11,9 +11,18 @@ from langchain.docstore.document import Document
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_JSON = os.path.join(BASE_DIR, "analisis_encuesta/resumen_participantes.json")
 OUTPUT_DIR = os.path.join(BASE_DIR, "recomendaciones")
+OUTPUT_JSON= os.path.join(OUTPUT_DIR, "resumen_participantes.json")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-VECTOR_DB_DIR = os.path.join(BASE_DIR, "/KB_RAG/vectorstore_chroma")
+dimensiones = {
+    "DAI": "Dispositivos y almacenamiento de información",
+    "TRI": "Transmisión de la información",
+    "CRS": "Comportamiento en las redes sociales",
+    "AUC": "Autenticación y uso de credenciales",
+    "MCE": "Mensajería y correo electrónico"
+}
+
+VECTOR_DB_DIR = os.path.join(BASE_DIR, "KB_RAG/vectorstore_chroma")
 
 # GEMINI SETUP
 load_dotenv()
@@ -43,7 +52,6 @@ def get_gemini_embedding(text: str):
                 else:
                     raise
 
-
 # CARGAR VECTOR STORE
 vector_store = Chroma(
     embedding_function=get_gemini_embedding,
@@ -51,6 +59,7 @@ vector_store = Chroma(
     persist_directory=VECTOR_DB_DIR
 )
 print("Vectores cargados:", len(vector_store._collection.get()["ids"]))
+
 
 # RETRIEVER
 def normalize_str(s):
@@ -62,11 +71,6 @@ def normalize_list(lst):
     return [normalize_str(x) for x in lst]
 
 def semantic_query(query_text="", top_k=5, filters=None):
-    """
-    Busca recomendaciones por:
-    - query_text: similitud semántica
-    - filters: metadata (dimension, nivel, tags, tema...)
-    """
     if query_text:
         print(f"[DEBUG] Buscando por query: {query_text}")
         query_emb = get_gemini_embedding(query_text)
@@ -78,7 +82,7 @@ def semantic_query(query_text="", top_k=5, filters=None):
             for d, m in zip(raw["documents"], raw["metadatas"])
         ]
     
-    # 2️⃣ Filtrado por metadata
+    # Filtrado por metadata
     if filters:
         print(f"[DEBUG] Aplicando filtros: {filters}")
         filtered = []
@@ -102,6 +106,13 @@ def semantic_query(query_text="", top_k=5, filters=None):
                         match = False
                         break
 
+                # Nivel: coincidencia exacta dentro de la lista
+                elif key == "nivel":
+                    filter_niveles = [normalize_str(f) for f in val] if isinstance(val, list) else [normalize_str(val)]
+                    if normalize_str(doc_val) not in filter_niveles:
+                        match = False
+                        break
+
                 # Tema: coincidencia parcial
                 elif key == "tema":
                     doc_temas = doc_val if isinstance(doc_val, list) else [doc_val]
@@ -120,108 +131,140 @@ def semantic_query(query_text="", top_k=5, filters=None):
 
             if match:
                 filtered.append(r)
-        print(f"[DEBUG] Total documentos encontrados: {len(filtered)}")
+        print(f"[DEBUG] Total documentos encontrados después de filtros: {len(filtered)}")
         filtered.sort(key=lambda x: len(x.page_content), reverse=True)
         return filtered[:top_k]
-
-    return results
-
-
-# EJEMPLO DE USO
-example_results = semantic_query(
-    query_text="Usar autenticación multifactor",
-    top_k=5,
-    filters={}
-)
-
-for r in example_results:
-    print(r.metadata["recomendacion"], "\n")
-
-print("SIN QUERY:")
-# Solo buscar por metadata (sin query_text)
-example_results2 = semantic_query(
-    query_text="",
-    top_k=5,
-    filters={"tags": ["MFA"], "nivel": "promedio", "dimension": "AUC"}
-)
-
-for r in example_results2:
-    print(r.metadata["recomendacion"], "\n")
-    print("FUENTE: ", r.metadata["fuente"], "\n")
+    return results[:top_k]
 
 
-# Cargar JSON de participantes
-with open(INPUT_JSON, "r", encoding="utf-8") as f:
-    participantes = json.load(f)
-
-NIVELES = ["básico", "promedio", "técnico", "administrador"]
-
-# Función para obtener recomendaciones sin repetir
+# Función para obtener recomendaciones únicas
 def get_unique_recommendations(docs, existing=set(), max_rec=5):
     recs = []
     for d in docs:
-        r = d.metadata.get("recomendacion", "")
-        if r not in existing:
-            recs.append({
-                "recomendacion": r,
+        r_text = d.metadata.get("recomendacion", "")
+        if r_text not in existing:
+            rec = {
+                "recomendacion": r_text,
                 "fuente": d.metadata.get("fuente", ""),
                 "nivel": d.metadata.get("nivel", ""),
                 "dimension": d.metadata.get("dimension", ""),
-                "tags": d.metadata.get("tags", [])
-            })
-            existing.add(r)
+                "tags": d.metadata.get("tags", []),
+                "esfuerzo": d.metadata.get("riesgo", ""),
+                "impacto": d.metadata.get("nivel", ""),
+                "texto_original": d.metadata.get("original_text", ""),
+                "fecha": d.metadata.get("fecha", "")
+            }
+            existing.add(r_text)
         if len(recs) >= max_rec:
             break
     return recs, existing
 
+def niveles_alternativos(nivel):
+    nivel = nivel.lower()
+    if nivel == "básico":
+        return ["promedio", "técnico", "administrador"]
+    elif nivel == "promedio":
+        return ["técnico", "básico", "administrador"]
+    elif nivel == "técnico":
+        return ["promedio", "básico", "administrador"]
+    elif nivel == "administrador":
+        return ["técnico", "promedio", "básico"]
+    return []
+
+
+# Cargar JSON de participantes
+with open(INPUT_JSON, "r", encoding="utf-8") as f:
+    data = json.load(f)
+participantes = data if isinstance(data, list) else [data]
+
+
 # Procesar cada participante
 recomendaciones_final = []
-
 for participante in participantes:
     datos_personales = participante.get("Datos_personales", {})
-    dim_criticas = participante["Análisis_datos"].get("Dimensiones_criticas", [])
-    items_criticos = participante["Análisis_datos"].get("Items_criticos_por_puntaje", [])
+    nivel_usuario = datos_personales.get("Nivel_expertis_ciberseguridad", "promedio").lower()
+    analisis = participante.get("Análisis_datos", {})
+    dim_criticas = analisis.get("Dimensiones_criticas", [])
+    items_criticos = analisis.get("Items_criticos", []) + analisis.get("Items_criticos_por_puntaje", [])
 
-    recomendaciones_part = []
+    recs_por_dimension = []
+    recs_por_item = []
 
     # Recomendaciones por dimensión crítica
     for dim in dim_criticas:
-        for nivel in NIVELES:
+        seen_recs_dim = set()
+        niveles = [nivel_usuario] + niveles_alternativos(nivel_usuario)
+        recs_dim = []
+        for nivel in niveles:
             docs = semantic_query(
-                query_text="",
+                query_text="Recomendaciones para "+dimensiones[dim],
                 top_k=10,
                 filters={"dimension": dim, "nivel": nivel}
             )
-            recs, _ = get_unique_recommendations(docs, max_rec=10)
-            for r in recs:
-                r.update({"tipo": "dimension", "dimension": dim, "nivel_usuario": nivel})
-            recomendaciones_part.extend(recs)
+            recs, seen_recs_dim = get_unique_recommendations(docs, existing=seen_recs_dim, max_rec=10)
+            recs_dim.extend(recs)
+            if len(recs_dim) >= 10:
+                break
+        # Actualizamos cada recomendación con metadata extendida
+        for r in recs_dim:
+            r.update({
+                "tipo": "dimension",
+                "dimension_asociada": dim,
+                "esfuerzo": r.get("esfuerzo", ""),
+                "impacto": r.get("impacto", ""),
+                "texto_original": r.get("original_text", ""),
+                "fecha": r.get("fecha", "")
+            })
+        recs_por_dimension.extend(recs_dim)
 
     # Recomendaciones por ítem crítico
-    seen_recs = set()
+    seen_items = set()
     for i in items_criticos:
         item_code = i.get("Item")
-        dimension = i.get("Dimension")
-        for nivel in NIVELES:
+        if item_code in seen_items:
+            continue
+        seen_items.add(item_code)
+
+        que_mide = i.get("Que_mide", "")
+        dimension = i.get("Dimension", "")
+        seen_recs_item = set()
+        
+        niveles_prueba = [nivel_usuario] + niveles_alternativos(nivel_usuario)
+        docs = []
+        for nivel in niveles_prueba:
             docs = semantic_query(
-                query_text="",
-                top_k=10,
-                filters={"dimension": dimension, "nivel": nivel, "tags": i.get("Que_mide", [])}
+                query_text=que_mide,
+                top_k=5,
+                filters={"dimension": dimension, "nivel": [nivel]}
             )
-            recs, seen_recs = get_unique_recommendations(docs, existing=seen_recs, max_rec=5)
-            for r in recs:
-                r.update({"tipo": "item", "item": item_code, "dimension": dimension, "nivel_usuario": nivel})
-            recomendaciones_part.extend(recs)
+            if len(docs) > 0:
+                break
+        
+        recs, _ = get_unique_recommendations(docs, existing=seen_recs_item, max_rec=5)
+        # Cada item no lleva 'dimension_asociada'
+        for r in recs:
+            r.update({
+                "tipo": "item",
+                "item_asociado": item_code,
+                "esfuerzo": r.get("esfuerzo", ""),
+                "impacto": r.get("impacto", ""),
+                "texto_original": r.get("original_text", ""),
+                "fecha": r.get("fecha", "")
+            })
+        recs_por_item.extend(recs)
 
     recomendaciones_final.append({
         "Participante": participante.get("Participante"),
         "Datos_personales": datos_personales,
-        "Recomendaciones": recomendaciones_part
+        "Recomendaciones": {
+            "dimension": recs_por_dimension,
+            "item": recs_por_item
+        }
     })
 
-# Guardar JSON final
-output_file = OUTPUT_DIR / INPUT_JSON.name
-with open(output_file, "w", encoding="utf-8") as f:
+
+# Guardar JSON de salida
+with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
     json.dump(recomendaciones_final, f, indent=2, ensure_ascii=False)
 
-print(f"Recomendaciones generadas en: {output_file}")
+print(f"Recomendaciones generadas en: {OUTPUT_JSON}")
