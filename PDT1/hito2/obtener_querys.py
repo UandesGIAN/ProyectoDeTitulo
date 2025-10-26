@@ -1,14 +1,19 @@
+import pandas as pd
 import os
+import json
 import time
 from dotenv import load_dotenv
 import google.genai as genai
 from langchain_chroma import Chroma
 from langchain.docstore.document import Document
 
-# VARIABLES GLOBALES
-BASE_DIR = os.path.dirname(__file__)
-VECTOR_DB_DIR = os.path.join(BASE_DIR, "vectorstore_chroma")
+# RUTAS
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INPUT_JSON = os.path.join(BASE_DIR, "analisis_encuesta/resumen_participantes.json")
+OUTPUT_DIR = os.path.join(BASE_DIR, "recomendaciones")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+VECTOR_DB_DIR = os.path.join(BASE_DIR, "/KB_RAG/vectorstore_chroma")
 
 # GEMINI SETUP
 load_dotenv()
@@ -73,7 +78,7 @@ def semantic_query(query_text="", top_k=5, filters=None):
             for d, m in zip(raw["documents"], raw["metadatas"])
         ]
     
-    # Filtrado por metadata
+    # 2️⃣ Filtrado por metadata
     if filters:
         print(f"[DEBUG] Aplicando filtros: {filters}")
         filtered = []
@@ -143,3 +148,80 @@ example_results2 = semantic_query(
 for r in example_results2:
     print(r.metadata["recomendacion"], "\n")
     print("FUENTE: ", r.metadata["fuente"], "\n")
+
+
+# Cargar JSON de participantes
+with open(INPUT_JSON, "r", encoding="utf-8") as f:
+    participantes = json.load(f)
+
+NIVELES = ["básico", "promedio", "técnico", "administrador"]
+
+# Función para obtener recomendaciones sin repetir
+def get_unique_recommendations(docs, existing=set(), max_rec=5):
+    recs = []
+    for d in docs:
+        r = d.metadata.get("recomendacion", "")
+        if r not in existing:
+            recs.append({
+                "recomendacion": r,
+                "fuente": d.metadata.get("fuente", ""),
+                "nivel": d.metadata.get("nivel", ""),
+                "dimension": d.metadata.get("dimension", ""),
+                "tags": d.metadata.get("tags", [])
+            })
+            existing.add(r)
+        if len(recs) >= max_rec:
+            break
+    return recs, existing
+
+# Procesar cada participante
+recomendaciones_final = []
+
+for participante in participantes:
+    datos_personales = participante.get("Datos_personales", {})
+    dim_criticas = participante["Análisis_datos"].get("Dimensiones_criticas", [])
+    items_criticos = participante["Análisis_datos"].get("Items_criticos_por_puntaje", [])
+
+    recomendaciones_part = []
+
+    # Recomendaciones por dimensión crítica
+    for dim in dim_criticas:
+        for nivel in NIVELES:
+            docs = semantic_query(
+                query_text="",
+                top_k=10,
+                filters={"dimension": dim, "nivel": nivel}
+            )
+            recs, _ = get_unique_recommendations(docs, max_rec=10)
+            for r in recs:
+                r.update({"tipo": "dimension", "dimension": dim, "nivel_usuario": nivel})
+            recomendaciones_part.extend(recs)
+
+    # Recomendaciones por ítem crítico
+    seen_recs = set()
+    for i in items_criticos:
+        item_code = i.get("Item")
+        dimension = i.get("Dimension")
+        for nivel in NIVELES:
+            docs = semantic_query(
+                query_text="",
+                top_k=10,
+                filters={"dimension": dimension, "nivel": nivel, "tags": i.get("Que_mide", [])}
+            )
+            recs, seen_recs = get_unique_recommendations(docs, existing=seen_recs, max_rec=5)
+            for r in recs:
+                r.update({"tipo": "item", "item": item_code, "dimension": dimension, "nivel_usuario": nivel})
+            recomendaciones_part.extend(recs)
+
+    recomendaciones_final.append({
+        "Participante": participante.get("Participante"),
+        "Datos_personales": datos_personales,
+        "Recomendaciones": recomendaciones_part
+    })
+
+# Guardar JSON final
+output_file = OUTPUT_DIR / INPUT_JSON.name
+with open(output_file, "w", encoding="utf-8") as f:
+    json.dump(recomendaciones_final, f, indent=2, ensure_ascii=False)
+
+print(f"Recomendaciones generadas en: {output_file}")

@@ -10,6 +10,7 @@ OUTPUT_JSON = os.path.join(OUTPUT_JSON_DIR, "resumen_participantes.json")
 
 os.makedirs(OUTPUT_JSON_DIR, exist_ok=True)
 
+'''
 # Datos sobre el IMECH
 dimensiones = [
     {"nombre": "Dispositivos y almacenamiento de información", "codigo": "DAI", "cantidad": 10},
@@ -46,6 +47,7 @@ informacion_personal = {
     ],
     "Capacitación en seguridad/ciberseguridad": ["Sí", "No"]
 }
+'''
 
 # Qué tanto riesgo indica cada pregunta. 3: Bastante, 4: Mucho, 5: Máximo.
 pesos_items = {
@@ -59,6 +61,38 @@ pesos_items = {
     "i36": 4, "i37": 3, "i38": 3, "i39": 4, "i40": 4,
     "i41": 4, "i42": 4
 }
+
+def asignar_nivel_expertis(datos):
+    rango = datos.get("Rango_etario", "")
+    nivel_resp = datos.get("Responsabilidad", "")
+    area = datos.get("Area_servicio_salud", "")
+    capacitado = datos.get("Posee_capacitacion", "No") == "Sí"
+
+    # Mapeo de rango a edad máxima para decidir "mayor de 45"
+    mayores_45 = ["46 a 59", "60 a 65", "65+"]
+
+    # Casos de Técnico: capacitación, solo si no son mayores de 45
+    if capacitado and rango not in mayores_45:
+        return "Técnico"
+    
+    # Casos de Promedio: jóvenes (18-25, 26-35)
+    if rango in ["18 a 25", "26 a 35"] and nivel_resp not in ["Colaborador(a) individual", "Jefatura"]:
+        return "Promedio"
+    
+    # Casos de Administrador: cargos altos o áreas directivas
+    if area in ["Subdirección de Gestión Clínica", "Subdirección de Servicios Clínicos",
+                "Subdirección de Operaciones", "Subdirección de Administración y Finanzas",
+                "Subdirección de Personas", "Subdirección Administrativa"]:
+        if nivel_resp in ["Colaborador(a) individual", "Externo"]:
+            if rango not in ["18 a 25", "26 a 35"] and nivel_resp != "Externo":
+                return "Promedio"  # No tienen cargo alto pero área es estratégica y no es mayor de 40
+            else:
+                return "Básico" # No jovenes no se espera que tengan conocimientos, tampoco los externos a la organizacióm
+        return "Administrador" # Jefatura
+    
+    # Casos de Básico: todo lo demás
+    return "Básico"
+
 
 # Cargar JSON procesado
 with open(RESULTADO_JSON, "r", encoding="utf-8") as f:
@@ -181,9 +215,12 @@ for participante in participantes:
         # Si hay menos de 5, tomar todos
         items_criticos_top5 = items_criticos_ordenados
 
+    datos_personales = participante.get("informacion_personal", {})
+    datos_personales["Nivel_expertis_ciberseguridad"] = asignar_nivel_expertis(datos_personales)
+
     salida = {
         "Participante": participante.get("Participante"),
-        "Datos_personales": participante.get("informacion_personal", {}),
+        "Datos_personales": datos_personales,
         "Análisis_datos": {
             "Puntaje_total": real_global,
             "Percentil_relativo_al_promedio": round(promedio_relativo_global_pct, 2),
