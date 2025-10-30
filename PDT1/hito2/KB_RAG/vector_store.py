@@ -44,7 +44,6 @@ def clean_filename(name):
     return "".join(c if c.isalnum() else "_" for c in name)
 
 def clean_metadata(meta: dict):
-    """Convierte valores None a string vacío y fuerza tipos válidos"""
     cleaned = {}
     for k, v in meta.items():
         if v is None:
@@ -128,10 +127,3 @@ vector_store = Chroma(
 
 vector_store.add_documents(docs)
 print("\n[VECTOR STORE] Guardado en:", VECTOR_DB_DIR)
-
-
-# RETRIEVER SIMPLE
-def semantic_query(query_text, top_k=5):
-    query_emb = get_gemini_embedding(query_text)
-    results = vector_store.similarity_search_by_vector(query_emb, k=top_k)
-    return results

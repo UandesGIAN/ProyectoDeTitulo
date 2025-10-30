@@ -71,12 +71,10 @@ def extract_date_from_text(text):
                     # Formato: YYYY-MM-DD
                     y, mo, d = m.groups()
                     return f"{d}-{mo}-{y}"
-    # Si no se encuentra nada, fallback inicio de año actual
+    # Si no se encuentra nada, pone el inicio de año actual
     return datetime(datetime.today().year,1,1).strftime("%d-%m-%Y")
 
 def safe_parse_json(text: str):
-    """Intenta limpiar y parsear JSON devuelto por Gemini"""
-    import json
     try:
         clean_text = re.sub(r"^```json|```$", "", text.strip())
         parsed = json.loads(clean_text)
@@ -148,7 +146,6 @@ def infer_pdf_metadata_with_gemini(pdf_text, pdf_path):
     """
     Usa Gemini para inferir metadata de un PDF (fecha, autor, título)
     pdf_text: texto de los primeros y últimos fragmentos del PDF
-    pdf_path: ruta del PDF, se usa solo para referencia
     """
     prompt = f"""
     Analiza el siguiente texto extraído de un PDF y devuelve SOLO un JSON con estos campos:
@@ -241,7 +238,6 @@ def get_html_metadata(html_path):
     return fecha, autor, url
 
 def infer_html_metadata_with_gemini(html_text, url):
-    """Usa Gemini AI para inferir fecha y autor/institución si no existen, priorizando fechas reales dentro del HTML."""
     prompt = f"""
     Analiza el siguiente HTML y devuelve SOLO un JSON con estos campos:
 

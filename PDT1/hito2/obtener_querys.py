@@ -7,7 +7,7 @@ import google.genai as genai
 from langchain_chroma import Chroma
 from langchain.docstore.document import Document
 
-# RUTAS
+# VARIABLES GLOBALES
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_JSON = os.path.join(BASE_DIR, "analisis_encuesta/resumen_participantes.json")
 OUTPUT_DIR = os.path.join(BASE_DIR, "recomendaciones")
@@ -35,7 +35,6 @@ client = genai.Client(api_key=API_KEY)
 
 # FUNCIONES AUXILIARES
 def get_gemini_embedding(text: str):
-    """Obtiene embedding de Gemini para un texto"""
     if not text.strip():
         return [0.0] * 3072  # embedding dummy
     for attempt in range(5):
@@ -186,7 +185,7 @@ for participante in participantes:
     nivel_usuario = datos_personales.get("Nivel_expertis_ciberseguridad", "promedio").lower()
     analisis = participante.get("Análisis_datos", {})
     dim_criticas = analisis.get("Dimensiones_criticas", [])
-    items_criticos = analisis.get("Items_criticos", []) + analisis.get("Items_criticos_por_puntaje", [])
+    items_criticos = analisis.get("Items_criticos_personales", []) + analisis.get("Items_criticos_debajo_percentil35", [])
 
     recs_por_dimension = []
     recs_por_item = []

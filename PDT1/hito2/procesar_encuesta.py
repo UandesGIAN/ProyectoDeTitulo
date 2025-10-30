@@ -2,16 +2,16 @@ import pandas as pd
 import os
 import json
 
-# Rutas de archivos
+# VARIABLES GLOBALES
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ITEMS_CSV = os.path.join(BASE_DIR, "datos_encuesta/items_imech.csv")
 RESPUESTAS_CSV = os.path.join(BASE_DIR, "datos_encuesta/muestra_encuesta.csv")
 RESULTADO_JSON = os.path.join(BASE_DIR, "datos_encuesta/muestra_encuesta_procesado.json")
 
-# Leer items del IMECH
+# Lee items del IMECH
 items_df = pd.read_csv(ITEMS_CSV)
 
-# Adaptar a diccionario
+# Adapta a diccionario
 items_dict = {}
 for _, row in items_df.iterrows():
     items_dict[row["Items"]] = {
@@ -24,7 +24,7 @@ for _, row in items_df.iterrows():
 
 print(f"Items cargados: {len(items_dict)}")
 
-# Leer respuestas
+# Lee respuestas
 respuestas_df = pd.read_csv(RESPUESTAS_CSV)
 respuestas_por_participante = []
 
@@ -41,7 +41,7 @@ for idx, row in respuestas_df.iterrows():
         "items": []
     }
     
-    # Recorrer todos los items
+    # Recorre todos los items
     for col in respuestas_df.columns:
         if col.startswith("i"):
             respuesta_val = row[col]
@@ -58,7 +58,7 @@ for idx, row in respuestas_df.iterrows():
     
     respuestas_por_participante.append(participante)
 
-# Guardar JSON
+# Guarda en JSON
 with open(RESULTADO_JSON, "w", encoding="utf-8") as f:
     json.dump(respuestas_por_participante, f, ensure_ascii=False, indent=2)
 

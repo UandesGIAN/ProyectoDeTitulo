@@ -7,7 +7,7 @@
 
 2. **Analizar datos encuesta**
 - [procesar_datos_encuesta.py](procesar_datos_encuesta.py) Lee los datos de la encuesta puros y evalúa las dimensiones más débiles del usuario.
-- Asigna un puntaje a cada respuesta del usuario y la compara con una respuesta promedio. Si  está por debajo del 65% considera que está en riesgo.
+- Asigna un puntaje a cada respuesta del usuario y la compara con una respuesta promedio. Si  está por debajo del 35% considera que está en riesgo.
 - Genera JSON de salida con un análisis por encuestado.
 
 3. **Obtener recomendaciones**

@@ -21,7 +21,6 @@ client = genai.Client(api_key=API_KEY)
 
 # FUNCIONES AUXILIARES
 def get_gemini_embedding(text: str):
-    """Obtiene embedding de Gemini para un texto"""
     if not text.strip():
         return [0.0] * 3072  # embedding dummy
     for attempt in range(5):

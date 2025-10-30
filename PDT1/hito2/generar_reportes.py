@@ -23,7 +23,6 @@ client = genai.Client(api_key=API_KEY)
 print("[GEMINI SETUP] PASS: Gemini configurado correctamente.\n")
 
 def safe_parse_json(text):
-    """Intenta parsear JSON de manera segura"""
     try:
         return json.loads(text)
     except:
@@ -38,15 +37,16 @@ def get_next_available_filename(base_path, base_name, ext):
         i += 1
     return os.path.join(base_path, candidate)
 
+
 def generate_report_md(participant_data):
     """
-    Genera el contenido MD del reporte usando Gemini AI
+    Genera el contenido MD del reporte usando Gemini AI - EXPERIMENTAL -
     """
     prompt = f"""
     A partir de esta información de un participante en una encuesta de ciberhigiene, redacta en 500 palabras o menos un pequeño pero preciso reporte, en lenguaje natural, profesional, serio y entendible para
     usuarios apropiado a su nivel de expertís, una guía precisa y clara de como mejorar su ciberseguridad mediante única y exclusivamente las recomendaciones que se adjuntan. Debes elegir las 10 más valoradas y distintas entre sí, luego al final
     incluir una sección con las fuentes, donde debes incluir el nombre de los pdf y su fecha o la url de la página web exactamente igual. Escribelo en formato markdown.
-    No debes incluir introducciones largas, solo indica que es un listado de recomendaciones para el participante y ES MUY IMPORTANTE QUE TOMES LA FUENTE DEL JKSON QUE TE ENTREGÓ A CONTINUACIÓN:
+    No debes incluir introducciones largas, solo indica que es un listado de recomendaciones para el participante y ES MUY IMPORTANTE QUE TOMES LA FUENTE DEL JSON QUE TE ENTREGÓ A CONTINUACIÓN:
 
     {json.dumps(participant_data, indent=2, ensure_ascii=False)}
     """
@@ -62,7 +62,6 @@ def generate_report_md(participant_data):
         return ""
 
 def save_md_and_pdf(md_content, base_name):
-    """Guarda MD y PDF en la carpeta OUTPUT_DIR"""
     md_file = get_next_available_filename(OUTPUT_DIR, base_name, "md")
     pdf_file = get_next_available_filename(OUTPUT_DIR, base_name, "pdf")
 
@@ -90,7 +89,6 @@ md_report = generate_report_md(participant)
 # Guardar MD y PDF
 save_md_and_pdf(md_report, base_name)
 '''
-
 
 # PARA GENERAR TODOS
 for idx, participant in enumerate(data):

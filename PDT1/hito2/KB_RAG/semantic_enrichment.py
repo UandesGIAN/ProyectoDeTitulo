@@ -4,7 +4,7 @@ import re
 from dotenv import load_dotenv
 import google.genai as genai
 
-# DIRECTORIOS
+# VARIABLES GLOBALES
 BASE_DIR = os.path.dirname(__file__)
 IN_DIR = os.path.join(BASE_DIR, "extracted_texts_jsons")
 OUT_DIR = os.path.join(BASE_DIR, "processed_jsons")
@@ -29,7 +29,6 @@ def clean_filename(name):
 def safe_parse_json(text: str):
     """
     Limpia y parsea el JSON que devuelve Gemini.
-    Maneja casos donde hay múltiples objetos o texto adicional.
     """
     try:
         clean_text = re.sub(r"^```json|```$", "", text.strip())
@@ -99,7 +98,6 @@ def is_valid_chunk(ch):
 def flatten_chunks(chunks):
     """
     Asegura que todos los elementos sean diccionarios.
-    Si un chunk es lista, extrae sus dicts individuales.
     """
     flat = []
     for ch in chunks:
@@ -110,9 +108,6 @@ def flatten_chunks(chunks):
     return flat
 
 def enrich_chunk_with_gemini(chunk_text: str, source_file: str):
-    """
-    Envía un fragmento al LLM y devuelve el JSON semántico enriquecido con rol, dimensión IMECH, esfuerzo, impacto, etc.
-    """
     imech_context = """
     MODELO IMECH (Instrumento de Medición de Ciberhigiene)
     -----------------------------------------------------

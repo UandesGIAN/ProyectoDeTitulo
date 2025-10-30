@@ -1,66 +1,17 @@
 import pandas as pd
 import os
 import json
+import numpy as np
 
-# RUTAS
+# VARIABLES GLOBALES
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTADO_JSON = os.path.join(BASE_DIR, "datos_encuesta/muestra_encuesta_procesado.json")
+INPUT_JSON = os.path.join(BASE_DIR, "datos_encuesta/muestra_encuesta_procesado.json")
 OUTPUT_JSON_DIR = os.path.join(BASE_DIR, "analisis_encuesta")
 OUTPUT_JSON = os.path.join(OUTPUT_JSON_DIR, "resumen_participantes.json")
+OUTPUT_GLOBAL = os.path.join(OUTPUT_JSON_DIR, "analisis_global.json")
 
 os.makedirs(OUTPUT_JSON_DIR, exist_ok=True)
 
-'''
-# Datos sobre el IMECH
-dimensiones = [
-    {"nombre": "Dispositivos y almacenamiento de información", "codigo": "DAI", "cantidad": 10},
-    {"nombre": "Transmisión de la información", "codigo": "TRI", "cantidad": 8},
-    {"nombre": "Comportamiento en las redes sociales", "codigo": "CRS", "cantidad": 7},
-    {"nombre": "Autenticación y uso de credenciales", "codigo": "AUC", "cantidad": 9},
-    {"nombre": "Mensajería y correo electrónico", "codigo": "MCE", "cantidad": 8}
-]
-
-respuestas_likert = {
-    1: "No me describe para nada",
-    2: "Me describe ligeramente",
-    3: "Me describe moderadamente",
-    4: "Me describe bastante",
-    5: "Me describe completamente"
-}
-
-informacion_personal = {
-    "Rango etario": ["18-25", "26-35", "36-45", "46-55", "56-65", "65+"],
-    "Género": ["Femenino", "Masculino", "Otro", "Prefiero no informarlo"],
-    "Área en el Servicio de Salud": [
-        "Dirección",
-        "Subdirección de Servicios Clínicos",
-        "Subdirección de Operaciones",
-        "Subdirección de Administración y Finanzas",
-        "Subdirección de Personas",
-        "Comités, Consejos, Unidades"
-    ],
-    "Nivel de Responsabilidad": [
-        "Dirección o Subdirección",
-        "Jefatura",
-        "Colaborador(a) individual",
-        "Externo"
-    ],
-    "Capacitación en seguridad/ciberseguridad": ["Sí", "No"]
-}
-'''
-
-# Qué tanto riesgo indica cada pregunta. 3: Bastante, 4: Mucho, 5: Máximo.
-pesos_items = {
-    "i01": 5, "i02": 4, "i03": 3, "i04": 4, "i05": 4,
-    "i06": 5, "i07": 3, "i08": 4, "i09": 5, "i10": 5,
-    "i11": 5, "i12": 4, "i13": 5, "i14": 3, "i15": 4,
-    "i16": 4, "i17": 4, "i18": 4, "i19": 5, "i20": 3,
-    "i21": 4, "i22": 4, "i23": 3, "i24": 3, "i25": 4,
-    "i26": 5, "i27": 4, "i28": 3, "i29": 5, "i30": 3,
-    "i31": 5, "i32": 4, "i33": 4, "i34": 3, "i35": 4,
-    "i36": 4, "i37": 3, "i38": 3, "i39": 4, "i40": 4,
-    "i41": 4, "i42": 4
-}
 
 def asignar_nivel_expertis(datos):
     rango = datos.get("Rango_etario", "")
@@ -68,152 +19,187 @@ def asignar_nivel_expertis(datos):
     area = datos.get("Area_servicio_salud", "")
     capacitado = datos.get("Posee_capacitacion", "No") == "Sí"
 
-    # Mapeo de rango a edad máxima para decidir "mayor de 45"
     mayores_45 = ["46 a 59", "60 a 65", "65+"]
 
-    # Casos de Técnico: capacitación, solo si no son mayores de 45
     if capacitado and rango not in mayores_45:
         return "Técnico"
-    
-    # Casos de Promedio: jóvenes (18-25, 26-35)
     if rango in ["18 a 25", "26 a 35"] and nivel_resp not in ["Colaborador(a) individual", "Jefatura"]:
         return "Promedio"
-    
-    # Casos de Administrador: cargos altos o áreas directivas
     if area in ["Subdirección de Gestión Clínica", "Subdirección de Servicios Clínicos",
                 "Subdirección de Operaciones", "Subdirección de Administración y Finanzas",
                 "Subdirección de Personas", "Subdirección Administrativa"]:
         if nivel_resp in ["Colaborador(a) individual", "Externo"]:
             if rango not in ["18 a 25", "26 a 35"] and nivel_resp != "Externo":
-                return "Promedio"  # No tienen cargo alto pero área es estratégica y no es mayor de 40
+                return "Promedio"
             else:
-                return "Básico" # No jovenes no se espera que tengan conocimientos, tampoco los externos a la organizacióm
-        return "Administrador" # Jefatura
-    
-    # Casos de Básico: todo lo demás
+                return "Básico"
+        return "Administrador"
     return "Básico"
 
 
 # Cargar JSON procesado
-with open(RESULTADO_JSON, "r", encoding="utf-8") as f:
+with open(INPUT_JSON, "r", encoding="utf-8") as f:
     participantes = json.load(f)
 
 
-# OBTENER DATOS GLOBALES PROMEDIO
-dimension_base = {}
+# ANALISIS DATOS PROMEDIO GLOBALES SEGUN LA MUESTRA
 item_to_dimension = {}
 item_to_indica = {}
-
+item_to_enunciado = {}
+respuestas_por_item = {}
 for p in participantes:
     for it in p.get("items", []):
         code = it.get("Item")
         if not code:
             continue
-        if code not in item_to_dimension:
-            item_to_dimension[code] = it.get("Dimension", "") or ""
-            item_to_indica[code] = it.get("Indica_riesgo", "") or ""
 
-# Calcular puntaje promedio total por dimensión
-for item_code, dim in item_to_dimension.items():
-    peso = pesos_items.get(item_code, 1)
-    indica = item_to_indica.get(item_code, "")
-    if indica == "Sí":
-        base_item = 3 * peso * 2
-    else:
-        base_item = 3 * peso
-    dimension_base[dim] = dimension_base.get(dim, 0) + base_item
+        item_to_dimension[code] = it.get("Dimension", "") or ""
+        item_to_indica[code] = it.get("Indica_riesgo", "") or ""
+        item_to_enunciado[code] = it.get("Enunciado", "") or ""
 
-base_global_total = sum(dimension_base.values())
-umbral_critico_pct = 0.65
-umbral_por_dimension = {dim: val * umbral_critico_pct for dim, val in dimension_base.items()}
+        val = it.get("Respuesta", None)
+        if val is None or val == "":
+            continue
+        try:
+            val = float(val)
+        except Exception:
+            continue
+
+        # Invertir si el ítem indica riesgo
+        if item_to_indica[code] == "Sí":
+            val = 6 - val
+
+        respuestas_por_item.setdefault(code, []).append(val)
+
+# Promedio para cada item y su puntaje equivalente al percentil 35
+promedio_por_item = {}
+percentil35_por_item = {}
+for code, vals in respuestas_por_item.items():
+    if len(vals) == 0:
+        continue
+    promedio_por_item[code] = round(np.mean(vals), 2)
+    percentil35_por_item[code] = round(np.percentile(vals, 35), 2)
+
+# Promedio por dimensión (a partir de promedios de ítem)
+dimension_items_vals = {}
+for item_code, prom in promedio_por_item.items():
+    dim = item_to_dimension.get(item_code, "")
+    dimension_items_vals.setdefault(dim, []).append(prom)
+
+promedio_por_dimension = {dim: round(np.mean(vals), 2) for dim, vals in dimension_items_vals.items() if vals}
+
+# Promedio global (promedio de las dimensiones)
+promedio_global = round(np.mean(list(promedio_por_dimension.values())), 2) if promedio_por_dimension else 0.0
 
 print("DATOS PROMEDIO...")
-print("Puntaje_promedio_total:", round(base_global_total, 2))
-print("Puntaje_promedio_por_dimension:", {k: round(v, 2) for k, v in dimension_base.items()})
-print("Umbral_critico_por_dimension", {k: round(v, 2) for k, v in umbral_por_dimension.items()})
+print("Puntaje_promedio_total:", promedio_global)
+print("Puntaje_promedio_por_dimension:", promedio_por_dimension)
 print()
 
 
 # ANÁLISIS POR PARTICIPANTE
 resumen_participantes = []
-
 for participante in participantes:
     items_analisis = []
     dimension_scores = {}
 
     for it in participante.get("items", []):
         item_code = it.get("Item")
+        indica = it.get("Indica_riesgo", "")
+        dim = it.get("Dimension", "")
         try:
             respuesta = float(it.get("Respuesta")) if it.get("Respuesta") not in (None, "") else None
         except Exception:
             respuesta = None
 
-        if respuesta is None or (isinstance(respuesta, float) and pd.isna(respuesta)):
-            riesgo_ponderado = None
-        else:
-            peso = pesos_items.get(item_code, 1)
-            indica = (it.get("Indica_riesgo") == "Sí")
-            if indica:
-                riesgo_ponderado = respuesta * peso * 2 # Si es un ítem que indica riesgo vale x2
+        # Invertir si es ítem de riesgo
+        if respuesta is not None:
+            if indica == "Sí":
+                respuesta_invertida = 6 - respuesta
             else:
-                riesgo_ponderado = (6 - respuesta) * peso
+                respuesta_invertida = respuesta
+        else:
+            respuesta_invertida = None
 
-            dim = it.get("Dimension") or ""
-            if dim:
-                dimension_scores[dim] = dimension_scores.get(dim, 0) + riesgo_ponderado
+        # Registrar valores por dimensión
+        if dim and respuesta_invertida is not None:
+            dimension_scores.setdefault(dim, []).append(respuesta_invertida)
 
         items_analisis.append({
             "Item": item_code,
-            "Dimension": it.get("Dimension", ""),
-            "Indica_riesgo": it.get("Indica_riesgo", ""),
+            "Dimension": dim,
+            "Indica_riesgo": indica,
             "Enunciado": it.get("Enunciado", "") or "",
-            "Que_mide": it.get("Que_mide", "") or "",
             "Respuesta": respuesta,
-            "Riesgo_ponderado": riesgo_ponderado
+            "respuesta_normalizada": respuesta_invertida, # Realmente a cuanto equivale del 1 al 5 si 1 es lo peor y 5 lo ideal
+            "Promedio_item_global": promedio_por_item.get(item_code), # Para comparar
+            "Percentil35_item_global": percentil35_por_item.get(item_code) # Para comparar
         })
 
-    # Calcular porcentajes
-    dimension_percentual = {}
-    dimensiones_criticas = []
-    for dim, base_val in dimension_base.items():
-        real_val = dimension_scores.get(dim, 0)
-        pct = (real_val / base_val * 100) if base_val else 0.0
-        dimension_percentual[dim] = pct
-        if pct <= umbral_critico_pct * 100:
-            dimensiones_criticas.append(dim)
+    # Puntajes por dimensión del participante
+    puntaje_por_dimension = {
+        k: round(np.mean(v), 2) for k, v in dimension_scores.items() if v
+    }
 
-    real_global = sum(dimension_scores.values())
-    promedio_relativo_global_pct = (real_global / base_global_total * 100) if base_global_total else 0.0
-
-    # ítems con valores que indican peligro
-    items_validos = [i for i in items_analisis if i["Respuesta"] is not None]
-
-    items_criticos = []
-    for i in items_validos:
-        resp = i["Respuesta"]
-        indica = i["Indica_riesgo"] == "Sí"
-
-        # Criterios: bajo (1 o 2) en positivos, alto (5) en negativos
-        if (indica and resp >= 5) or (not indica and resp <= 2):
-            items_criticos.append(i)
-
-    # Ordenar los ítems críticos por riesgo ponderado (mayor = más riesgoso)
-    items_criticos_ordenados = sorted(
-        items_criticos,
-        key=lambda x: (x["Riesgo_ponderado"] if x["Riesgo_ponderado"] is not None else 0),
-        reverse=True
+    # Puntaje promedio total del participante
+    puntaje_total = (
+        round(np.mean(list(puntaje_por_dimension.values())), 2)
+        if puntaje_por_dimension else 0
     )
 
-    # Si hay más de 5 ítems, tomar el valor del 5
-    if len(items_criticos_ordenados) >= 5:
-        limite_riesgo = items_criticos_ordenados[4]["Riesgo_ponderado"]
-        items_criticos_top5 = [
-            i for i in items_criticos_ordenados
-            if i["Riesgo_ponderado"] is not None and i["Riesgo_ponderado"] >= limite_riesgo
-        ]
-    else:
-        # Si hay menos de 5, tomar todos
-        items_criticos_top5 = items_criticos_ordenados
+    # Items criticos vs si mismo
+    items_criticos_personales = []
+    for i in items_analisis:
+        r = i["Respuesta"]
+        if r is None:
+            continue
+        if i["Indica_riesgo"] == "Sí" and r >= 4:
+            items_criticos_personales.append({**i})
+        elif i["Indica_riesgo"] == "No" and r <= 2:
+            items_criticos_personales.append({**i})
+
+    # Dimensiones críticas: aquellas con peor puntaje o debajo de la media
+    conteo_extremos_por_dimension = {}
+    for i in items_criticos_personales:
+        dim = i.get("Dimension")
+        if not dim:
+            continue
+        conteo_extremos_por_dimension[dim] = conteo_extremos_por_dimension.get(dim, 0) + 1
+
+    # Identificar la(s) dimensión(es) con mayor cantidad de respuestas extremas
+    max_extremos = max(conteo_extremos_por_dimension.values(), default=0)
+    dimensiones_por_respuestas_extremas = [
+        dim for dim, count in conteo_extremos_por_dimension.items()
+        if count == max_extremos and count > 0
+    ]
+
+    # Dimensiones con promedio por debajo del promedio global
+    dimensiones_bajo_promedio_global = [
+        d for d, val in puntaje_por_dimension.items()
+        if val < promedio_global
+    ]
+
+    # Unir ambas condiciones
+    dimensiones_criticas = sorted(
+        set(dimensiones_por_respuestas_extremas + dimensiones_bajo_promedio_global)
+    )
+
+
+    # Ítems críticos vs percentil 35
+    items_criticos_vs_media = []
+    for i in items_analisis:
+        prom_item = i.get("Promedio_item_global")
+        perc35 = i.get("Percentil35_item_global")
+        if prom_item is None or perc35 is None:
+            continue
+
+        if i["Indica_riesgo"] == "Sí":
+            desempeño = 6 - (i["respuesta_normalizada"] or 0)
+        else:
+            desempeño = i["respuesta_normalizada"] or 0
+
+        if desempeño <= perc35:
+            items_criticos_vs_media.append(i)
 
     datos_personales = participante.get("informacion_personal", {})
     datos_personales["Nivel_expertis_ciberseguridad"] = asignar_nivel_expertis(datos_personales)
@@ -221,24 +207,26 @@ for participante in participantes:
     salida = {
         "Participante": participante.get("Participante"),
         "Datos_personales": datos_personales,
+        "Datos globales": {
+            "Puntaje_promedio_global": promedio_global,
+            "Puntaje_global_por_dimension": promedio_por_dimension
+        },
         "Análisis_datos": {
-            "Puntaje_total": real_global,
-            "Percentil_relativo_al_promedio": round(promedio_relativo_global_pct, 2),
-            "Puntaje_por_dimension": {k: round(dimension_scores.get(k, 0), 2) for k in dimension_base.keys()},
-            "Percentil_relativo_al_promedio_por_dimension": {k: round(v, 2) for k, v in dimension_percentual.items()},
+            "Puntaje_promedio_total": puntaje_total,
+            "Puntaje_promedio_por_dimension": puntaje_por_dimension,
             "Dimensiones_criticas": dimensiones_criticas,
-            "Items_criticos": items_criticos,
-            "Items_criticos_por_puntaje": items_criticos_top5
+            "Items_criticos_personales": items_criticos_personales, # Aquellos con puntaje 1,2 o 4,5 segun si son de riesgo o no
+            "Items_criticos_debajo_percentil35": items_criticos_vs_media  # Debajo percentil 35
         }
     }
 
+    # Guardar JSON individual
     json_individual = os.path.join(OUTPUT_JSON_DIR, f"participante_{participante.get('Participante')}.json")
     with open(json_individual, "w", encoding="utf-8") as f:
         json.dump(salida, f, indent=2, ensure_ascii=False)
 
     resumen_participantes.append(salida)
 
-# Guardar JSON agregado
 with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
     json.dump(resumen_participantes, f, indent=2, ensure_ascii=False)
 
